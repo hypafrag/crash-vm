@@ -1,0 +1,5 @@
+.DS_Store
+/.venv/
+/.idea/workspace.xml
+/.idea/encodings.xml
+__pycache__
