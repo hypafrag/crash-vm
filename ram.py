@@ -22,6 +22,9 @@ class RAM(Slave):
     def clear(self):
         ctypes.memset(self._cells, 0, self._capacity)
 
+    def __len__(self):
+        return self._capacity
+
     def __repr__(self):
         line_segment_len = 2
         line_segments_num = 16
