@@ -1,7 +1,7 @@
+from ._types import Address
+from .bus import Slave
 from typing import Any
-from _types import Address
 from itertools import count
-from bus import Slave
 import ctypes
 
 

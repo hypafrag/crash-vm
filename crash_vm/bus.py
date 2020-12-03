@@ -1,5 +1,12 @@
-from typing import Tuple, List, Protocol, Any
-from _types import Address
+import sys
+from ._types import Address
+from typing import Tuple, List, Any
+
+if sys.version_info[0] == 3 and sys.version_info[1] == 7:
+    class Protocol:
+        pass
+else:
+    from typing import Protocol
 
 
 class Slave(Protocol):
