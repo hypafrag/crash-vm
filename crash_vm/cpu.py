@@ -1,5 +1,5 @@
 from .bus import Bus
-from ._types import Address
+from ._types import Address, NativeInt, NativeFalse, NativeTrue
 from enum import Enum, auto
 from typing import Dict, Callable, Tuple, Optional
 from inspect import getfullargspec
@@ -56,12 +56,12 @@ class CPU:
     def __init__(self, bus: Bus):
         self._bus = bus
         self._IA = Address()  # next instruction address
-        self._Acc = int()  # accumulator
+        self._Acc = NativeInt()  # accumulator
         self.reset()
 
     def reset(self):
-        self._IA = 0
-        self._Acc = 0
+        self._IA = Address(0)
+        self._Acc = NativeInt(0)
 
     def next_instruction(self):
         instruction_address = self._IA
@@ -69,14 +69,16 @@ class CPU:
         opcode = None
         try:
             opcode = self._bus[instruction_address]
-            instruction = Instructions(opcode)
+            instruction = Instructions(opcode.value)
         except ValueError:
             raise InvalidInstruction(instruction_address, opcode)
 
         method, args_num = _instruction_methods[instruction]
-        args = list(map(self._bus.__getitem__, range(instruction_address + 1, instruction_address + 1 + args_num)))
+        args = list(map(lambda a: Address(self._bus[Address(a)].value),
+                        range(instruction_address.value + 1,
+                              instruction_address.value + 1 + args_num)))
 
-        self._IA += 1 + args_num
+        self._IA = Address(self._IA.value + 1 + args_num)
         method(self, *args)
 
     @perform_instruction(Instructions.Halt)
@@ -93,43 +95,43 @@ class CPU:
 
     @perform_instruction(Instructions.Add)
     def _add(self, address: Address):
-        self._Acc += self._bus[address]
+        self._Acc = NativeInt(self._Acc.value + self._bus[address].value)
 
     @perform_instruction(Instructions.Neg)
     def _neg(self):
-        self._Acc = -self._Acc
+        self._Acc = NativeInt(-self._Acc.value)
 
     @perform_instruction(Instructions.Mul)
     def _multiply(self, address: Address):
-        self._Acc *= self._bus[address]
+        self._Acc = NativeInt(self._Acc.value * self._bus[address].value)
 
     @perform_instruction(Instructions.Div)
     def _divide(self, address: Address):
-        self._Acc //= self._bus[address]
+        self._Acc = NativeInt(self._Acc.value // self._bus[address].value)
 
     @perform_instruction(Instructions.Sqrt)
-    def _square_root(self, address: Address):
-        self._Acc = sqrt(self._bus[address])
+    def _square_root(self):
+        self._Acc = NativeInt(int(sqrt(self._Acc.value)))
 
     @perform_instruction(Instructions.Eq)
     def _equal(self, address: Address):
-        self._Acc = 1 if self._Acc == self._bus[address] else 0
+        self._Acc = NativeTrue if self._Acc == self._bus[address] else NativeFalse
 
     @perform_instruction(Instructions.Gt)
     def _greater(self, address: Address):
-        self._Acc = 1 if self._Acc > self._bus[address] else 0
+        self._Acc = NativeTrue if self._Acc.value > self._bus[address].value else NativeFalse
 
     @perform_instruction(Instructions.Not)
     def _not(self):
-        self._Acc = 1 if self._Acc == 0 else 0
+        self._Acc = NativeTrue if self._Acc.value == NativeFalse.value else NativeFalse
 
     @perform_instruction(Instructions.Or)
     def _or(self, address: Address):
-        self._Acc = 1 if self._Acc or self._bus[address] else 0
+        self._Acc = NativeTrue if self._Acc.value or self._bus[address].value else NativeFalse
 
     @perform_instruction(Instructions.And)
     def _and(self, address: Address):
-        self._Acc = 1 if self._Acc and self._bus[address] else 0
+        self._Acc = NativeTrue if self._Acc.value and self._bus[address].value else NativeFalse
 
     @perform_instruction(Instructions.Jmp)
     def _jump(self, address: Address):
@@ -142,8 +144,8 @@ class CPU:
 
     def __dict__(self):
         return {
-            'IA': self._IA,
-            'Acc': self._Acc,
+            'IA': self._IA.value,
+            'Acc': self._Acc.value,
         }
 
     def __str__(self):

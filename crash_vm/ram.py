@@ -1,26 +1,23 @@
-from ._types import Address
+from ._types import Address, NativeInt
 from .bus import Slave
-from typing import Any
 from itertools import count
-import ctypes
+from ctypes import memset, sizeof
 
 
 class RAM(Slave):
     def __init__(self, capacity: int):
         self._capacity = capacity
-        self._cells = ctypes.create_string_buffer(capacity)
+        self._cells = (NativeInt * capacity)()
         self.clear()
 
-    def __getitem__(self, address: Address) -> int:
-        assert 0 <= address < self._capacity, 'Invalid address'
-        return self._cells[address][0]
+    def __getitem__(self, address: Address) -> NativeInt:
+        return NativeInt(self._cells[address.value])
 
-    def __setitem__(self, address: Address, value: Any) -> None:
-        assert 0 <= address < self._capacity, 'Invalid address'
-        self._cells[address] = value
+    def __setitem__(self, address: Address, value: NativeInt) -> None:
+        self._cells[address.value] = value
 
     def clear(self):
-        ctypes.memset(self._cells, 0, self._capacity)
+        memset(self._cells, 0, self._capacity * sizeof(NativeInt))
 
     def __len__(self):
         return self._capacity
@@ -41,4 +38,4 @@ class RAM(Slave):
                                 '             ')
                                 + t[1],
                                 zip(count(-2), hex_str)))
-        return f'RAM({self._capacity} bytes)\n{hex_str}'
+        return f'RAM({self._capacity}x{sizeof(NativeInt)} bytes)\n{hex_str}'

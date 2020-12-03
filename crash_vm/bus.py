@@ -1,5 +1,5 @@
 import sys
-from ._types import Address
+from ._types import Address, AddressRange, NativeInt
 from typing import Tuple, List, Any
 
 if sys.version_info[0] == 3 and sys.version_info[1] == 7:
@@ -10,29 +10,29 @@ else:
 
 
 class Slave(Protocol):
-    def __setitem__(self, address: Address, value: Any) -> None:
+    def __setitem__(self, address: Address, value: NativeInt) -> None:
         raise NotImplementedError()
 
-    def __getitem__(self, address: Address) -> Any:
+    def __getitem__(self, address: Address) -> NativeInt:
         raise NotImplementedError()
 
 
 class Bus:
     def __init__(self):
-        self._attached: List[Tuple[Tuple[Address, Address], Slave]] = []
+        self._attached: List[Tuple[AddressRange, Slave]] = []
 
-    def attach(self, address_range: Tuple[Address, Address], slave: Slave):
+    def attach(self, address_range: AddressRange, slave: Slave):
         self._attached.append((address_range, slave))
 
-    def __setitem__(self, address: Address, value: Any):
-        for (address_from, address_to), slave in self._attached:
-            if address_from <= address < address_to:
-                slave[address - address_from] = value
+    def __setitem__(self, address: Address, value: NativeInt):
+        for address_range, slave in self._attached:
+            if address in address_range:
+                slave[Address(address.value - address_range.start_value)] = value
                 return
         raise ValueError('Invalid address')
 
     def __getitem__(self, address: Address):
-        for (address_from, address_to), slave in self._attached:
-            if address_from <= address < address_to:
-                return slave[address - address_from]
+        for address_range, slave in self._attached:
+            if address in address_range:
+                return slave[Address(address.value - address_range.start_value)]
         raise ValueError('Invalid address')

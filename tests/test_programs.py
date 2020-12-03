@@ -1,6 +1,6 @@
 import unittest
 from enum import Enum
-from crash_vm import VM, Instructions as Ins
+from crash_vm import VM, Instructions as Ins, Address, NativeInt
 
 
 def padr(seq, num, value=0):
@@ -46,46 +46,97 @@ def factorial_program(a):
 
 
 def quad_equation(a, b, c):
+    _temp = 247
+    _2 = 248
+    _4 = 249
+
     _a = 250
     _b = 251
     _c = 252
-    _d = 253
-    _4 = 249
-    _temp = 248
+
+    _sqrt_D = 253
+    _x1 = 254
+    _x2 = 255
 
     return padr([
-        # calculate discriminant as b * b - 4 * a * c
-        Ins.Ld, _b,  # 0
-        Ins.Mul, _b,  # 2
-        Ins.St, _temp,  # 4
-        Ins.Ld, _4,  # 6
-        Ins.Mul, _a,  # 8
-        Ins.Mul, _c,  # 10
-        Ins.Neg,  # 12
-        Ins.Add, _temp,  # 13
-        Ins.St, _d,  # 15
-        # calculate temp as -b / (2 * a)
+        # calculate sqrt(D) as sqrt(b * b - 4 * a * c)
+        Ins.Ld, _b,
+        Ins.Mul, _b,
+        Ins.St, _temp,
+        Ins.Ld, _4,
+        Ins.Mul, _a,
+        Ins.Mul, _c,
+        Ins.Neg,
+        Ins.Add, _temp,
+        Ins.Sqrt,
+        Ins.St, _sqrt_D,
+        # calculate x1 as (-b + sqrt(D)) / (2 * a)
+        Ins.Ld, _b,
+        Ins.Neg,
+        Ins.Add, _sqrt_D,
+        Ins.Div, _2,
+        Ins.Div, _a,
+        Ins.St, _x1,
+        # calculate x2 as -(b + sqrt(D)) / (2 * a)
+        Ins.Ld, _b,
+        Ins.Add, _sqrt_D,
+        Ins.Neg,
+        Ins.Div, _2,
+        Ins.Div, _a,
+        Ins.St, _x2,
+        Ins.Halt,
     ], 128) + padl([
-        0,  # 248 temp
+        0,  # 247 temp
+        2,  # 248 const
         4,  # 249 const
         a,  # 250 a
         b,  # 251 b
         c,  # 252 c
-        0,  # 253 d
+        0,  # 253 sqrt(D)
         0,  # 254 x1
         0,  # 255 x2
-    ], 128), 254, 255, 252
+    ], 128), (_sqrt_D, _x1, _x2), 247
 
 
 class TestPrograms(unittest.TestCase):
+    def assertCodeSegmentUnchanged(self, program: list, vm: VM, instructions_segment_size: int):
+        for i in range(instructions_segment_size):
+            expected = NativeInt(program[i].value if isinstance(program[i], Enum) else program[i])
+            self.assertEqual(vm[Address(i)].value, expected.value)
+
+    def vm_exec(self, program):
+        vm = VM()
+        program_code, results_addresses, instructions_segment_size = program
+        vm.load_program(program_code)
+        vm.run()
+        self.assertCodeSegmentUnchanged(program_code, vm, instructions_segment_size)
+
+        def addr_value(result_address):
+            return vm[Address(result_address)].value
+
+        if isinstance(results_addresses, tuple):
+            return tuple(map(addr_value, results_addresses))
+        else:
+            return addr_value(results_addresses)
+
     def test_factorial(self):
-        results = [0, 1, 2, 6, 24, 120]
-        for a in range(1, 6):
-            vm = VM()
-            program, result_index, code_segment_size = factorial_program(a)
-            vm.load_program(program)
-            vm.run()
-            for i in range(code_segment_size):
-                expected = program[i].value if isinstance(program[i], Enum) else program[i]
-                self.assertEqual(vm[i], expected)
-            self.assertEqual(vm[result_index], results[a])
+        test_set = [
+            (1, 1),
+            (2, 2),
+            (3, 6),
+            (4, 24),
+            (5, 120),
+        ]
+        for test_in, test_out in test_set:
+            actual_out = self.vm_exec(factorial_program(test_in))
+            self.assertEqual(actual_out, test_out)
+
+    def test_quad_equation(self):
+        test_set = [
+            ((1, 1, 0), (1, 0, -1)),
+            ((1, 2, 1), (0, -1, -1)),
+            ((1, 8, 1), (7, -1, -8)),
+        ]
+        for test_in, test_out in test_set:
+            actual_out = self.vm_exec(quad_equation(*test_in))
+            self.assertEqual(actual_out, test_out)
