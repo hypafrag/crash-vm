@@ -1,5 +1,5 @@
 from .bus import Bus
-from ._types import Address, NativeNumber, NativeFalse, NativeTrue, float_to_native_number, int_to_native_number
+from ._types import Address, NativeNumber, NativeFalse, NativeTrue, float_to_native_number
 from enum import Enum, auto
 from typing import Dict, Callable, Tuple, Optional
 from inspect import getfullargspec

@@ -1,6 +1,6 @@
 import sys
 from ._types import Address, AddressRange, NativeNumber
-from typing import Tuple, List, Any
+from typing import Tuple, List
 
 if sys.version_info[0] == 3 and sys.version_info[1] == 7:
     class Protocol:
