@@ -1,6 +1,6 @@
 import time
 import sys
-from ._types import NativeInt, Address, AddressRange
+from ._types import NativeNumber, Address, AddressRange
 from .cpu import CPU, HaltExecution
 from .ram import RAM
 from .bus import Bus
@@ -43,9 +43,9 @@ class VM:
         for address, value in zip(count(), program):
             if isinstance(value, Enum):
                 value = value.value
-            self._ram[Address(address)] = NativeInt(value)
+            self._ram[Address(address)] = NativeNumber(value)
 
-    def __getitem__(self, item: Address) -> NativeInt:
+    def __getitem__(self, item: Address) -> NativeNumber:
         return self._fsb[item]
 
     def __repr__(self):

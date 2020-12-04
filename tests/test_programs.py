@@ -1,6 +1,6 @@
 import unittest
 from enum import Enum
-from crash_vm import VM, Instructions as Ins, Address, NativeInt
+from crash_vm import VM, Instructions as Ins, Address, NativeNumber
 
 
 def padr(seq, num, value=0):
@@ -101,7 +101,7 @@ def quad_equation(a, b, c):
 class TestPrograms(unittest.TestCase):
     def assertCodeSegmentUnchanged(self, program: list, vm: VM, instructions_segment_size: int):
         for i in range(instructions_segment_size):
-            expected = NativeInt(program[i].value if isinstance(program[i], Enum) else program[i])
+            expected = NativeNumber(program[i].value if isinstance(program[i], Enum) else program[i])
             self.assertEqual(vm[Address(i)].value, expected.value)
 
     def vm_exec(self, program):
@@ -135,7 +135,7 @@ class TestPrograms(unittest.TestCase):
         test_set = [
             ((1, 1, 0), (1, 0, -1)),
             ((1, 2, 1), (0, -1, -1)),
-            ((1, 8, 1), (7, -1, -8)),
+            ((1, 8, 1), (7, 0, -7)),
         ]
         for test_in, test_out in test_set:
             actual_out = self.vm_exec(quad_equation(*test_in))

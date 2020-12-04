@@ -1,5 +1,5 @@
 from .bus import Bus
-from ._types import Address, NativeInt, NativeFalse, NativeTrue
+from ._types import Address, NativeNumber, NativeFalse, NativeTrue, float_to_native_number, int_to_native_number
 from enum import Enum, auto
 from typing import Dict, Callable, Tuple, Optional
 from inspect import getfullargspec
@@ -56,12 +56,12 @@ class CPU:
     def __init__(self, bus: Bus):
         self._bus = bus
         self._IA = Address()  # next instruction address
-        self._Acc = NativeInt()  # accumulator
+        self._Acc = NativeNumber()  # accumulator
         self.reset()
 
     def reset(self):
         self._IA = Address(0)
-        self._Acc = NativeInt(0)
+        self._Acc = NativeNumber(0)
 
     def next_instruction(self):
         instruction_address = self._IA
@@ -74,7 +74,7 @@ class CPU:
             raise InvalidInstruction(instruction_address, opcode)
 
         method, args_num = _instruction_methods[instruction]
-        args = list(map(lambda a: Address(self._bus[Address(a)].value),
+        args = list(map(lambda a: Address(int(self._bus[Address(a)].value)),
                         range(instruction_address.value + 1,
                               instruction_address.value + 1 + args_num)))
 
@@ -95,23 +95,23 @@ class CPU:
 
     @perform_instruction(Instructions.Add)
     def _add(self, address: Address):
-        self._Acc = NativeInt(self._Acc.value + self._bus[address].value)
+        self._Acc = NativeNumber(self._Acc.value + self._bus[address].value)
 
     @perform_instruction(Instructions.Neg)
     def _neg(self):
-        self._Acc = NativeInt(-self._Acc.value)
+        self._Acc = NativeNumber(-self._Acc.value)
 
     @perform_instruction(Instructions.Mul)
     def _multiply(self, address: Address):
-        self._Acc = NativeInt(self._Acc.value * self._bus[address].value)
+        self._Acc = NativeNumber(self._Acc.value * self._bus[address].value)
 
     @perform_instruction(Instructions.Div)
     def _divide(self, address: Address):
-        self._Acc = NativeInt(self._Acc.value // self._bus[address].value)
+        self._Acc = float_to_native_number(self._Acc.value / self._bus[address].value)
 
     @perform_instruction(Instructions.Sqrt)
     def _square_root(self):
-        self._Acc = NativeInt(int(sqrt(self._Acc.value)))
+        self._Acc = float_to_native_number(sqrt(self._Acc.value))
 
     @perform_instruction(Instructions.Eq)
     def _equal(self, address: Address):

@@ -1,11 +1,31 @@
 import ctypes
 from typing import Union
 
-NativeInt = ctypes.c_byte
+NativeNumber = ctypes.c_byte
+
+
+def float_to_native_number(f):
+    return NativeNumber(int(f))
+
+
+def int_to_native_number(i):
+    return NativeNumber(i)
+
+# NativeNumber = ctypes.c_double
+#
+#
+# def float_to_native_number(f):
+#     return NativeNumber(f)
+#
+#
+# def int_to_native_number(i):
+#     return NativeNumber(float(i))
+
+
 Address = ctypes.c_ubyte
 
-NativeFalse = NativeInt(0)
-NativeTrue = NativeInt(1)
+NativeFalse = NativeNumber(0)
+NativeTrue = NativeNumber(1)
 
 
 class AddressRange:

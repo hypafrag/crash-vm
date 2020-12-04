@@ -1,4 +1,4 @@
-from ._types import Address, NativeInt
+from ._types import Address, NativeNumber
 from .bus import Slave
 from itertools import count
 from ctypes import memset, sizeof
@@ -7,17 +7,17 @@ from ctypes import memset, sizeof
 class RAM(Slave):
     def __init__(self, capacity: int):
         self._capacity = capacity
-        self._cells = (NativeInt * capacity)()
+        self._cells = (NativeNumber * capacity)()
         self.clear()
 
-    def __getitem__(self, address: Address) -> NativeInt:
-        return NativeInt(self._cells[address.value])
+    def __getitem__(self, address: Address) -> NativeNumber:
+        return NativeNumber(self._cells[address.value])
 
-    def __setitem__(self, address: Address, value: NativeInt) -> None:
+    def __setitem__(self, address: Address, value: NativeNumber) -> None:
         self._cells[address.value] = value
 
     def clear(self):
-        memset(self._cells, 0, self._capacity * sizeof(NativeInt))
+        memset(self._cells, 0, self._capacity * sizeof(NativeNumber))
 
     def __len__(self):
         return self._capacity
@@ -38,4 +38,4 @@ class RAM(Slave):
                                 '             ')
                                 + t[1],
                                 zip(count(-2), hex_str)))
-        return f'RAM({self._capacity}x{sizeof(NativeInt)} bytes)\n{hex_str}'
+        return f'RAM({self._capacity}x{sizeof(NativeNumber)} bytes)\n{hex_str}'
