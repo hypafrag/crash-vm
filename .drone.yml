@@ -15,10 +15,10 @@ steps:
   commands:
   - pip install bumpversion
   - $(bumpversion --list none setup.py crash_vm/__init__.py | sed -e 's/^/export /')
-  - test "$current_version" == "$DRONE_TAG"
+  - test "v$current_version" == "$DRONE_TAG"
   when:
     event: tag
-    branch: refs/tags/*.*.*
+    branch: refs/tags/v*.*.*
 
 - name: publish
   image: plugins/pypi
@@ -29,7 +29,7 @@ steps:
     repository: https://test.pypi.org/legacy/
   when:
     event: tag
-    branch: refs/tags/*.*.*
+    branch: refs/tags/v*.*.*
 
 trigger:
   branch:
