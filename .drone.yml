@@ -9,6 +9,17 @@ steps:
   commands:
   - pip install -r requirements.txt
   - pypy -m unittest discover tests
+
+- name: verify
+  image: pypy:3.7-slim
+  commands:
+  - pip install bumpversion
+  - $(bumpversion --list none setup.py crash_vm/__init__.py)
+  - echo $current_version
+#  when:
+#    event: tag
+#    branch: refs/tags/*.*.*
+
 - name: publish
   image: plugins/pypi
   settings:
@@ -16,6 +27,10 @@ steps:
     password:
       from_secret: PYPI_ACCESS_TOKEN
     repository: https://test.pypi.org/legacy/
+  when:
+    event: tag
+    branch: refs/tags/*.*.*
+
 trigger:
   branch:
   - master
