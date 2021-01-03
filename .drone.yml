@@ -14,9 +14,7 @@ steps:
   commands:
   - pip install bumpversion
   - $(bumpversion --list none setup.py crash_vm/__init__.py | sed -e 's/^/export /')
-  - echo $current_version
-  - echo $DRONE_TAG
-  - test "v$current_version" == "$DRONE_TAG"
+  - test "v$current_version" = "$DRONE_TAG"
   when:
     ref: refs/tags/v*.*.*
 
