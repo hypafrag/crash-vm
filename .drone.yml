@@ -14,7 +14,7 @@ steps:
   image: pypy:3.7-slim
   commands:
   - pip install bumpversion
-  - $(bumpversion --list none setup.py crash_vm/__init__.py)
+  - $(bumpversion --list none setup.py crash_vm/__init__.py | sed -e 's/^/export /')
   - QWE=asd
   - echo $QWE
   - echo $DRONE_TAG
