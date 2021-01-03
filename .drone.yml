@@ -15,6 +15,9 @@ steps:
   commands:
   - pip install bumpversion
   - $(bumpversion --list none setup.py crash_vm/__init__.py)
+  - QWE=asd
+  - echo $QWE
+  - echo $DRONE_TAG
   - echo $current_version
 #  when:
 #    event: tag
