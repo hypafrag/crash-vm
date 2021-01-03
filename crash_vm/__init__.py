@@ -1,3 +1,5 @@
+__version__ = '0.0.1'
+
 from .cpu import CPU, Instructions
 from .bus import Bus
 from .ram import RAM
