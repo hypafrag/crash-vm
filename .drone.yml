@@ -24,7 +24,6 @@ steps:
     username: __token__
     password:
       from_secret: PYPI_ACCESS_TOKEN
-    repository: https://test.pypi.org/legacy/
   when:
     ref: refs/tags/v*.*.*
 
