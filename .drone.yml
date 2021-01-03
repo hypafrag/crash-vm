@@ -1,0 +1,21 @@
+---
+kind: pipeline
+type: docker
+name: default
+
+steps:
+- name: test
+  image: pypy:3.7-slim
+  commands:
+  - pip install -r requirements.txt
+  - pypy -m unittest discover tests
+- name: publish
+  image: plugins/pypi
+  settings:
+    username: __token__
+    password:
+      from_secret: PYPI_ACCESS_TOKEN
+    repository: https://test.pypi.org/legacy/
+trigger:
+  branch:
+  - master
