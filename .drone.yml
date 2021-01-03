@@ -16,8 +16,7 @@ steps:
   - $(bumpversion --list none setup.py crash_vm/__init__.py | sed -e 's/^/export /')
   - test "v$current_version" == "$DRONE_TAG"
   when:
-    event: tag
-    branch: refs/tags/v*.*.*
+    ref: refs/tags/v*.*.*
 
 - name: publish
   image: plugins/pypi
@@ -27,8 +26,7 @@ steps:
       from_secret: PYPI_ACCESS_TOKEN
     repository: https://test.pypi.org/legacy/
   when:
-    event: tag
-    branch: refs/tags/v*.*.*
+    ref: refs/tags/v*.*.*
 
 trigger:
   ref:
