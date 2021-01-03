@@ -9,5 +9,6 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
+    packages=["crash_vm"],
     python_requires='>=3.7',
 )
