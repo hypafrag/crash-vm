@@ -1,0 +1,108 @@
+@startuml
+title CrashVM simple architecture
+
+map CPU {
+}
+map RAM {
+}
+
+CPU - RAM
+
+CPU : IA => 0x0000 - 0xffff
+CPU : OC => 0x0000 - 0xffff
+CPU : Arg0 => 0x0000 - 0xffff
+CPU : Acc => 0x0000 - 0xffff
+
+RAM : 0x0000 => 0x0000 - 0xffff
+RAM : 0x0001 => 0x0000 - 0xffff
+RAM : 0x0002 => 0x0000 - 0xffff
+RAM : ... *->
+RAM : 0x00ff => 0x0000 - 0xffff
+
+@enduml
+
+@startuml
+title CrashVM cycle
+
+participant RAM
+participant OC
+participant Arg0
+participant IA
+participant CPU
+
+==Fetch opcode==
+RAM -> OC: OC = RAM[IA]
+IA -> IA: IA = IA + 1
+opt Argument required for fetched operation
+==Fetch argument==
+RAM -> Arg0: Arg0 = RAM[IA]
+IA -> IA: IA = IA + 1
+end
+==Execute==
+CPU -> CPU: Execute instruction\n(see "CrashVM instructions")
+alt Halt executed
+    CPU -> CPU: Stop cycling
+else
+    CPU -> CPU: Back to "Fetch opcode"
+end
+
+@enduml
+
+@startuml
+title CrashVM instructions
+
+==Ld (OC == 0x01)==
+RAM -> Acc: Acc = RAM[Arg0]
+==St (OC == 0x02)==
+RAM <- Acc: RAM[Arg0] = Acc
+
+==Add (OC == 0x03)==
+RAM -> Acc: Acc += RAM[Arg0]
+==Neg (OC == 0x04)==
+Acc -> Acc: Acc = -Acc
+
+==Mul (OC == 0x05)==
+RAM -> Acc: Acc *= RAM[Arg0]
+==Div (OC == 0x06)==
+RAM -> Acc: Acc /= RAM[Arg0]
+
+==Eq (OC == 0x07)==
+alt Acc == RAM[Arg0]
+    RAM -> Acc: Acc = 1
+else
+    RAM -> Acc: Acc = 0
+end
+==Gt (OC == 0x08)==
+alt Acc > RAM[Arg0]
+    RAM -> Acc: Acc = 1
+else
+    RAM -> Acc: Acc = 0
+end
+
+==Not (OC == 0x09)==
+alt Acc == 0
+    Acc -> Acc: Acc = 1
+else
+    Acc -> Acc: Acc = 0
+end
+==And (OC == 0x0a)==
+alt Acc and RAM[Arg0]
+    Acc -> Acc: Acc = 1
+else
+    Acc -> Acc: Acc = 0
+end
+==Or (OC == 0x0b)==
+alt Acc or RAM[Arg0]
+    Acc -> Acc: Acc = 1
+else
+    Acc -> Acc: Acc = 0
+end
+
+==Jmp (OC == 0x0c)==
+RAM -> IA: IA = RAM[Arg0]
+==Jif (OC == 0x0d)==
+opt Acc != 0
+    RAM -> IA: IA = RAM[Arg0]
+end
+
+@enduml
