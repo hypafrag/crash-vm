@@ -19,12 +19,18 @@ class VM:
         try:
             if frequency is None:
                 while True:
-                    self._cpu.next_instruction()
+                    for _ in self._cpu.cycle():
+                        pass
             else:
                 period_ns = int(1000000000.0 / frequency)
+                cycle_iter = self._cpu.cycle()
                 while True:
                     cycle_start_ts_ns = time.perf_counter_ns()
-                    self._cpu.next_instruction()
+                    try:
+                        next(cycle_iter)
+                    except StopIteration:
+                        cycle_iter = self._cpu.cycle()
+                        next(cycle_iter)
                     cycle_overtime_ns = period_ns - (time.perf_counter_ns() - cycle_start_ts_ns)
                     if cycle_overtime_ns >= 0:
                         time.sleep(cycle_overtime_ns * 0.000000001)
@@ -43,7 +49,7 @@ class VM:
         for address, value in zip(count(), program):
             if isinstance(value, Enum):
                 value = value.value
-            self._ram[Address(address)] = NativeNumber(value)
+            self._ram[Address(address)] = value
 
     def __getitem__(self, item: Address) -> NativeNumber:
         return self._fsb[item]

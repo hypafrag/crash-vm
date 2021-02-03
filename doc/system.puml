@@ -33,6 +33,10 @@ participant CPU
 ==Fetch opcode==
 RAM -> OC: OC = RAM[IA]
 IA -> IA: IA = IA + 1
+==Decode opcode==
+opt OC contains unknown opcode
+CPU -> CPU: InvalidInstruction interrupt
+end
 opt Argument required for fetched operation
 ==Fetch argument==
 RAM -> Arg0: Arg0 = RAM[IA]
@@ -50,6 +54,8 @@ end
 
 @startuml
 title CrashVM instructions
+
+==Noop (OC == 0x00)==
 
 ==Ld (OC == 0x01)==
 RAM -> Acc: Acc = RAM[Arg0]
@@ -104,5 +110,8 @@ RAM -> IA: IA = RAM[Arg0]
 opt Acc != 0
     RAM -> IA: IA = RAM[Arg0]
 end
+
+==Halt (OC == 0xff)==
+CPU -> CPU: HaltExecution interrupt
 
 @enduml

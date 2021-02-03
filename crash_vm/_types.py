@@ -1,7 +1,7 @@
 import ctypes
 from typing import Union
 
-NativeNumber = ctypes.c_byte
+NativeNumber = ctypes.c_short
 
 
 def float_to_native_number(f):
@@ -22,7 +22,7 @@ def int_to_native_number(i):
 #     return NativeNumber(float(i))
 
 
-Address = ctypes.c_ubyte
+Address = ctypes.c_ushort
 
 NativeFalse = NativeNumber(0)
 NativeTrue = NativeNumber(1)

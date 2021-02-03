@@ -104,11 +104,11 @@ class TestPrograms(unittest.TestCase):
             expected = NativeNumber(program[i].value if isinstance(program[i], Enum) else program[i])
             self.assertEqual(vm[Address(i)].value, expected.value)
 
-    def vm_exec(self, program):
+    def vm_exec(self, program, frequency=None):
         vm = VM()
         program_code, results_addresses, instructions_segment_size = program
         vm.load_program(program_code)
-        vm.run()
+        vm.run(frequency)
         self.assertCodeSegmentUnchanged(program_code, vm, instructions_segment_size)
 
         def addr_value(result_address):
@@ -129,6 +129,18 @@ class TestPrograms(unittest.TestCase):
         ]
         for test_in, test_out in test_set:
             actual_out = self.vm_exec(factorial_program(test_in))
+            self.assertEqual(actual_out, test_out)
+
+    def test_factorial_cycled(self):
+        test_set = [
+            (1, 1),
+            (2, 2),
+            (3, 6),
+            (4, 24),
+            (5, 120),
+        ]
+        for test_in, test_out in test_set:
+            actual_out = self.vm_exec(factorial_program(test_in), 1000)
             self.assertEqual(actual_out, test_out)
 
     def test_quad_equation(self):
