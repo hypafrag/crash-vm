@@ -31,9 +31,9 @@ def factorial_program(a):
         Ins.Add, 252,  # 13
         Ins.St, 252,  # 15
         # }
-        # check a[n] > 1
+        # check a[i] > 1
         Ins.Gt, 253,  # 17
-        # if a[n] > 1 start new iteration
+        # if a[i] > 1 start new iteration
         Ins.Jif, 4,  # 19
         # else halt
         Ins.Halt,

@@ -210,13 +210,17 @@ def parse(lines) -> Generator[Line, None, None]:
 #     parsed = list(parse(lines))
 #
 #     # first pass to determine addresses of labels
-#     labels = dict(map(lambda l: (l.label, l.address), filter(lambda l: isinstance(l, LabelLine), parsed)))
+#     labels = dict(map(lambda l: (l.label, l.address),
+#                       filter(lambda l: isinstance(l, LabelLine),
+#                              parsed)))
 #
 #     def resolve(byte):
 #         return labels[byte] if isinstance(byte, Label) else byte
 #
 #     # second pass to produce bytecode
-#     return list(chain(map(lambda line: map(resolve, line.produce_bytes_padded()), parsed)))
+#     return list(chain(map(lambda line: map(resolve,
+#                                            line.produce_bytes_padded()),
+#                           parsed)))
 
 
 def compile(lines):

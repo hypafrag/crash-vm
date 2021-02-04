@@ -9,10 +9,14 @@ from enum import Enum
 
 
 class VM:
-    def __init__(self):
+    def __init__(self, ram_size=256, peripherals=None):
         self._fsb = Bus()
-        self._ram = RAM(256)
-        self._fsb.attach(AddressRange(0, 256), self._ram)
+        self._ram = RAM(ram_size)
+        self._fsb.attach(AddressRange(0, ram_size), self._ram)
+        next_pool_address = ram_size
+        for pool_size, peripheral in peripherals:
+            self._fsb.attach(AddressRange(next_pool_address, next_pool_address + pool_size), peripheral)
+            next_pool_address += pool_size
         self._cpu = CPU(self._fsb)
 
     def run(self, frequency=None):
