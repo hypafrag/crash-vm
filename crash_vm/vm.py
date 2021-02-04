@@ -9,7 +9,7 @@ from enum import Enum
 
 
 class VM:
-    def __init__(self, ram_size=256, peripherals=None):
+    def __init__(self, ram_size=256, peripherals=()):
         self._fsb = Bus()
         self._ram = RAM(ram_size)
         self._fsb.attach(AddressRange(0, ram_size), self._ram)
