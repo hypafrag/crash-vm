@@ -1,6 +1,6 @@
 import unittest
 from enum import Enum
-from crash_vm import VM, Instructions as Ins, Address, NativeNumber
+from crash_vm import VM, Instructions as Ins, Address, NativeNumber, asm_compile
 
 
 def padr(seq, num, value=0):
@@ -43,6 +43,49 @@ def factorial_program(a):
         a,  # 254
         1,  # 255 result
     ], 128), 255, 252
+
+
+def factorial_asm_program(a):
+    return (f'''
+
+        # set a[i] = a
+            Ld a:
+            St a_i:
+
+        iteration_begin:
+
+        # result = result * a[i]
+            Ld result:
+            Mul a_i:
+            St result:
+
+        # a[i]--
+            Ld const_1:
+            Neg
+            Add a_i:
+            St a_i:
+
+        # iteration end
+
+        # check a[n] > 1
+            Gt const_1:
+        # if a[n] > 1 start new iteration
+            Jif iteration_begin:
+        # else halt
+            Halt
+
+        Offset 250
+            a_i:
+                0
+            const_1:
+                1
+            a:
+                {a}
+
+        Offset 255
+            result:
+                1
+    ''', 255, 250)
 
 
 def quad_equation(a, b, c):
@@ -101,12 +144,15 @@ def quad_equation(a, b, c):
 class TestPrograms(unittest.TestCase):
     def assertCodeSegmentUnchanged(self, program: list, vm: VM, instructions_segment_size: int):
         for i in range(instructions_segment_size):
-            expected = NativeNumber(program[i].value if isinstance(program[i], Enum) else program[i])
+            expected = NativeNumber(program[i].value if isinstance(program[i], (Enum, NativeNumber, Address))
+                                    else program[i])
             self.assertEqual(vm[Address(i)].value, expected.value)
 
     def vm_exec(self, program, frequency=None):
         vm = VM()
         program_code, results_addresses, instructions_segment_size = program
+        if isinstance(program_code, str):
+            program_code = asm_compile(program_code)
         vm.load_program(program_code)
         vm.run(frequency)
         self.assertCodeSegmentUnchanged(program_code, vm, instructions_segment_size)
@@ -119,27 +165,26 @@ class TestPrograms(unittest.TestCase):
         else:
             return addr_value(results_addresses)
 
+    factorial_test_set = [
+        (1, 1),
+        (2, 2),
+        (3, 6),
+        (4, 24),
+        (5, 120),
+    ]
+
     def test_factorial(self):
-        test_set = [
-            (1, 1),
-            (2, 2),
-            (3, 6),
-            (4, 24),
-            (5, 120),
-        ]
-        for test_in, test_out in test_set:
+        for test_in, test_out in self.factorial_test_set:
             actual_out = self.vm_exec(factorial_program(test_in))
             self.assertEqual(actual_out, test_out)
 
-    def test_factorial_cycled(self):
-        test_set = [
-            (1, 1),
-            (2, 2),
-            (3, 6),
-            (4, 24),
-            (5, 120),
-        ]
-        for test_in, test_out in test_set:
+    def test_factorial_asm(self):
+        for test_in, test_out in self.factorial_test_set:
+            actual_out = self.vm_exec(factorial_asm_program(test_in))
+            self.assertEqual(actual_out, test_out)
+
+    def test_factorial_clocked(self):
+        for test_in, test_out in self.factorial_test_set:
             actual_out = self.vm_exec(factorial_program(test_in), 1000)
             self.assertEqual(actual_out, test_out)
 

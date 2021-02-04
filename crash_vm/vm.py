@@ -47,7 +47,7 @@ class VM:
     def load_program(self, program):
         assert len(program) <= len(self._ram)
         for address, value in zip(count(), program):
-            if isinstance(value, Enum):
+            if isinstance(value, (Enum, NativeNumber, Address)):
                 value = value.value
             self._ram[Address(address)] = value
 

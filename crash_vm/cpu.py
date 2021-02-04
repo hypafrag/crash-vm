@@ -31,13 +31,13 @@ class Instructions(Enum):
     Halt = 0xff
 
 
-_instruction_methods: Dict[Instructions, Tuple[Callable, int]] = {}
+instruction_methods: Dict[Instructions, Tuple[Callable, int]] = {}
 
 
 def perform_instruction(name: Instructions, arg_num: int = 0):
     def decorator(method: Callable):
-        assert name not in _instruction_methods, 'Instruction redefinition'
-        _instruction_methods[name] = (method, arg_num)
+        assert name not in instruction_methods, 'Instruction redefinition'
+        instruction_methods[name] = (method, arg_num)
         return method
 
     return decorator
@@ -81,7 +81,7 @@ class CPU:
             instruction = Instructions(self._OC.value)
         except ValueError:
             raise InvalidInstruction()
-        method, args_num = _instruction_methods[instruction]
+        method, args_num = instruction_methods[instruction]
         yield
 
         if args_num > 0:
