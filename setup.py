@@ -4,6 +4,7 @@ setuptools.setup(
     name="crash-vm",
     version="0.0.1",
     description="Simple virtual machine implemented in pure python",
+    url="https://github.com/hypafrag/crash-vm",
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
