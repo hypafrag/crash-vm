@@ -90,38 +90,38 @@ def factorial_asm_program(a):
 
 def function_sqr_program(a):
     return (f'''
-        Offset 0
-            Ext  # extended mode
+        OFFSET 0
+            EXT  # extended mode
 
             A0V  # value arg mode
-            Stk stack:
-            Ld post_call:  # push return address
-            Push
+            STK stack:
+            LD post_call:  # push return address
+            PUSH
             # set arg0
-            Ld {a}
-            Push
-            Jmp fun_sqr_1_1:
+            LD {a}
+            PUSH
+            JMP fun_sqr_1_1:
             post_call:
             A0A  # address arg mode
-            ASta  # stack offset addressing mode
-            Ld 0  # load returned value
+            ASTA  # stack offset addressing mode
+            LD 0  # load returned value
             A0V  # value arg mode
-            Pop 3  # cleanup returned value, arg and return address
+            POP 3  # cleanup returned value, arg and return address
 
             A0V  # value arg mode
-            Push  # push program result
-            Int 0
+            PUSH  # push program result
+            INT 0
 
-        Offset 100
+        OFFSET 100
         fun_sqr_1_1:
             A0A  # address arg mode
-            ASta  # stack offset addressing mode
-            Ld 0
-            Mul 0
-            Push  # push returned value
-            Jmp 2
+            ASTA  # stack offset addressing mode
+            LD 0
+            MUL 0
+            PUSH  # push returned value
+            JMP 2
 
-        Offset 200
+        OFFSET 200
         stack:
     ''', 200, 200)
 

@@ -5,6 +5,8 @@ from ._types import NativeNumber, Address
 from typing import Generator, List, Union
 import itertools
 
+LowercaseInstructions = {instruction.name.lower(): instruction for instruction in Instructions}
+
 chain = itertools.chain.from_iterable
 
 HEX_NUMBER_PATTERN = r'[\-\+]?(?:0x[0-9a-fA-F]+)'
@@ -18,7 +20,7 @@ LABEL_PATTERN = rf'{IDENTIFIER_FIRST_CHARACTER_PATTERN}{IDENTIFIER_CHARACTER_PAT
 ADDRESS_PATTERN = rf'(?:{ADDRESS_LITERAL_PATTERN}|{LABEL_PATTERN})'
 INDENTATION_PATTERN = rf'^{SPACER_CHARACTER_PATTERN}*'
 LINE_END_PATTERN = rf'{SPACER_CHARACTER_PATTERN}*(?:#.*)?$'
-INSTRUCTION_NAME_PATTERN = '|'.join(map(lambda i: f'(?:{i.name})', Instructions))
+INSTRUCTION_NAME_PATTERN = '|'.join(map(lambda i: f'(?i:{i.name})', Instructions))
 
 
 class CompilationError(Exception):
@@ -106,7 +108,7 @@ class EmptyLine(Line):
 
 
 class OffsetLine(Line):
-    Pattern = rf'{INDENTATION_PATTERN}Offset{SPACER_CHARACTER_PATTERN}+({ADDRESS_LITERAL_PATTERN}){LINE_END_PATTERN}'
+    Pattern = rf'{INDENTATION_PATTERN}(?i:offset){SPACER_CHARACTER_PATTERN}+({ADDRESS_LITERAL_PATTERN}){LINE_END_PATTERN}'
 
     def __init__(self, address, offset_str):
         super().__init__(address)
@@ -147,7 +149,7 @@ class InstructionLine(Line):
         super().__init__(address, instruction_name, args_str)
         args = args_str.strip().split(' ') if args_str else []
         try:
-            instruction = Instructions[instruction_name]
+            instruction = LowercaseInstructions[instruction_name.lower()]
         except KeyError:
             raise CompilationError(f'Invalid instruction {instruction_name}')
         _, arg_num = instruction_methods[instruction]
