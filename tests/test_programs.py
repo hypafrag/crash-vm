@@ -36,7 +36,7 @@ def factorial_program(a):
         # if a[i] > 1 start new iteration
         Ins.Jif, 4,  # 19
         # else halt
-        Ins.Halt,
+        Ins.Int, 0,
     ], 128) + padl([
         0,  # 252 a[i]
         1,  # 253 const
@@ -72,7 +72,7 @@ def factorial_asm_program(a):
         # if a[n] > 1 start new iteration
             Jif iteration_begin:
         # else halt
-            Halt
+            Int 0
 
         Offset 250
             a_i:
@@ -86,6 +86,44 @@ def factorial_asm_program(a):
             result:
                 1
     ''', 255, 250)
+
+
+def function_sqr_program(a):
+    return (f'''
+        Offset 0
+            Ext  # extended mode
+
+            A0V  # value arg mode
+            Stk stack:
+            Ld post_call:  # push return address
+            Push
+            # set arg0
+            Ld {a}
+            Push
+            Jmp fun_sqr_1_1:
+            post_call:
+            A0A  # address arg mode
+            ASta  # stack offset addressing mode
+            Ld 0  # load returned value
+            A0V  # value arg mode
+            Pop 3  # cleanup returned value, arg and return address
+
+            A0V  # value arg mode
+            Push  # push program result
+            Int 0
+
+        Offset 100
+        fun_sqr_1_1:
+            A0A  # address arg mode
+            ASta  # stack offset addressing mode
+            Ld 0
+            Mul 0
+            Push  # push returned value
+            Jmp 2
+
+        Offset 200
+        stack:
+    ''', 200, 200)
 
 
 def quad_equation(a, b, c):
@@ -127,7 +165,7 @@ def quad_equation(a, b, c):
         Ins.Div, _2,
         Ins.Div, _a,
         Ins.St, _x2,
-        Ins.Halt,
+        Ins.Int, 0,
     ], 128) + padl([
         0,  # 247 temp
         2,  # 248 const
@@ -186,6 +224,18 @@ class TestPrograms(unittest.TestCase):
     def test_factorial_clocked(self):
         for test_in, test_out in self.factorial_test_set:
             actual_out = self.vm_exec(factorial_program(test_in), 1000)
+            self.assertEqual(actual_out, test_out)
+
+    def test_sqr_func(self):
+        test_set = [
+            (1, 1),
+            (2, 4),
+            (3, 9),
+            (4, 16),
+            (5, 25),
+        ]
+        for test_in, test_out in test_set:
+            actual_out = self.vm_exec(function_sqr_program(test_in), 1000)
             self.assertEqual(actual_out, test_out)
 
     def test_quad_equation(self):

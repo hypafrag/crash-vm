@@ -1,7 +1,7 @@
 import time
 import sys
 from ._types import NativeNumber, Address, AddressRange
-from .cpu import CPU, HaltExecution
+from .cpu import CPU, SWInterrupt
 from .ram import RAM
 from .bus import Bus
 from itertools import count
@@ -19,30 +19,46 @@ class VM:
             next_pool_address += pool_size
         self._cpu = CPU(self._fsb)
 
+    def _breakpoint(self):
+        print(self)
+
+    def _cycle(self, cycle_iter):
+        try:
+            try:
+                next(cycle_iter)
+            except StopIteration:
+                cycle_iter = self._cpu.cycle()
+                next(cycle_iter)
+        except SWInterrupt as interrupt:
+            if interrupt.code == SWInterrupt.ReservedCodes.Breakpoint.value:
+                self._breakpoint()
+            else:
+                raise interrupt
+        return cycle_iter
+
     def run(self, frequency=None):
         try:
             if frequency is None:
+                cycle_iter = self._cpu.cycle()
                 while True:
-                    for _ in self._cpu.cycle():
-                        pass
+                    cycle_iter = self._cycle(cycle_iter)
             else:
                 period_ns = int(1000000000.0 / frequency)
                 cycle_iter = self._cpu.cycle()
                 while True:
                     cycle_start_ts_ns = time.perf_counter_ns()
-                    try:
-                        next(cycle_iter)
-                    except StopIteration:
-                        cycle_iter = self._cpu.cycle()
-                        next(cycle_iter)
+                    cycle_iter = self._cycle(cycle_iter)
                     cycle_overtime_ns = period_ns - (time.perf_counter_ns() - cycle_start_ts_ns)
                     if cycle_overtime_ns >= 0:
                         time.sleep(cycle_overtime_ns * 0.000000001)
                     else:
                         print(self._cpu, 'throttling to', 1000000000.0 / (period_ns - cycle_overtime_ns), 'Hz',
                               file=sys.stderr)
-        except HaltExecution:
-            pass
+        except SWInterrupt as interrupt:
+            if interrupt.code == SWInterrupt.ReservedCodes.Halt.value:
+                pass
+            else:
+                raise interrupt
 
     def reset(self):
         self._ram.clear()

@@ -1,4 +1,4 @@
-@startuml
+@startuml simple_architecture
 title CrashVM simple architecture
 
 map CPU {
@@ -10,8 +10,8 @@ CPU - RAM
 
 CPU : IA => 0x0000 - 0xffff
 CPU : OC => 0x0000 - 0xffff
-CPU : Arg0 => 0x0000 - 0xffff
-CPU : Acc => 0x0000 - 0xffff
+CPU : A0 => 0x0000 - 0xffff
+CPU : AC => 0x0000 - 0xffff
 
 RAM : 0x0000 => 0x0000 - 0xffff
 RAM : 0x0001 => 0x0000 - 0xffff
@@ -21,26 +21,106 @@ RAM : 0x00ff => 0x0000 - 0xffff
 
 @enduml
 
-@startuml
-title CrashVM cycle
+@startuml calling_convention
+
+participant Caller
+participant Stack
+participant Callee
+participant CPU
+
+activate Caller
+Caller -> Stack: Push return address
+Caller -> Stack: Push Arg[ArgN]
+...
+Caller -> Stack: Push Arg[1]
+Caller -> Stack: Push Arg[0]
+Caller -> CPU: Jump to function start
+deactivate Caller
+
+activate Callee
+Callee -> Callee: Do stuff
+...
+Callee -> Stack: Push Ret[RetN]
+...
+Callee -> Stack: Push Ret[1]
+Callee -> Stack: Push Ret[0]
+Callee -> CPU: Jump to return address
+deactivate Callee
+
+activate Caller
+Caller -> Stack: Fetch returned values
+Caller -> Stack: Pop ArgN + RetN + 1\nvalues
+...
+
+@enduml
+
+@startuml advanced_architecture
+title CrashVM advanced architecture
+
+map "OM Flags" as OMF {
+    0x0 => A0 value type\n0 - address\n1 - value
+    0x1 => Addressing mode\n0 - RAM address\n1 - Stack offset
+    0x2 => Jump argument value type\n0 - value\n1 - address
+    0x3 - 0xf => Not used, always 0
+}
+
+map CPU {
+    IA => Instruction address\n0x0000 - 0xffff
+    OC => Operation code\n0x0000 - 0xffff
+    OM *-> OMF
+    OM => Operation mode\n16 flags
+    A0 => Operation argument\n0x0000 - 0xffff
+    V0 => Resolved A0 value\n0x0000 - 0xffff
+    AC => Accumulator\n0x0000 - 0xffff
+    OS => Operation status\n0x0000 - 0xffff
+    SP => Stack pointer\n0x0000 - 0xffff
+}
+
+map Bridge {
+}
+
+map RAM {
+    0x0000 => 0x0000 - 0xffff
+    0x0001 => 0x0000 - 0xffff
+    0x0002 => 0x0000 - 0xffff
+    ... => ...
+    0xfeff => 0x0000 - 0xffff
+}
+
+map Ports {
+    0xff00 => 0x0000 - 0xffff
+    0xff01 => 0x0000 - 0xffff
+    0xff02 => 0x0000 - 0xffff
+    ... => ...
+    0xffff => 0x0000 - 0xffff
+}
+
+CPU -- Bridge: FSB
+Bridge -- RAM
+Bridge -- Ports
+
+@enduml
+
+@startuml simple_cycle
+title CrashVM simple cycle
 
 participant RAM
 participant OC
-participant Arg0
+participant A0
 participant IA
 participant CPU
 
 ==Fetch opcode==
 RAM -> OC: OC = RAM[IA]
-IA -> IA: IA = IA + 1
+IA -> IA: IA += 1
 ==Decode opcode==
 opt OC contains unknown opcode
-CPU -> CPU: InvalidInstruction interrupt
+    CPU -> CPU: InvalidInstruction interrupt
 end
 opt Argument required for fetched operation
-==Fetch argument==
-RAM -> Arg0: Arg0 = RAM[IA]
-IA -> IA: IA = IA + 1
+    ==Fetch argument==
+    RAM -> A0: A0 = RAM[IA]
+    IA -> IA: IA += 1
 end
 ==Execute==
 CPU -> CPU: Execute instruction\n(see "CrashVM instructions")
@@ -52,66 +132,220 @@ end
 
 @enduml
 
-@startuml
-title CrashVM instructions
+@startuml advanced_cycle
+title CrashVM advanced cycle
 
-==Noop (OC == 0x00)==
+participant FSB
+participant OC
+participant V0
+participant IA
+participant CPU
+
+==Fetch opcode==
+FSB -> OC: OC = FSB[IA]
+IA -> IA: IA += 1
+==Decode opcode==
+opt OC contains unknown opcode
+CPU -> CPU: InvalidInstruction interrupt
+end
+opt Argument required for fetched operation
+    ==Fetch argument==
+    FSB -> A0: A0 = FSB[IA]
+    IA -> IA: IA += 1
+    opt OM[0] == 0
+        ==Fetch argument value==
+        alt OM[1] == 0
+        FSB -> V0: V0 = FSB[A0]
+        else
+        FSB -> V0: V0 = FSB[SP - A0 - 1]
+        end
+    end
+end
+==Execute==
+CPU -> CPU: Execute instruction\n(see "CrashVM instructions")
+alt Halt executed
+    CPU -> CPU: Stop cycling
+else
+    CPU -> CPU: Back to "Fetch opcode"
+end
+
+@enduml
+
+@startuml simple_instructions
+title CrashVM simple instructions set
+
+participant RAM
+participant AC
+participant IA
+participant CPU
+
+==Int (OC == 0x00)==
+A0 -> CPU: Software interrupt\nwith code A0
 
 ==Ld (OC == 0x01)==
-RAM -> Acc: Acc = RAM[Arg0]
+RAM -> AC: AC = RAM[A0]
 ==St (OC == 0x02)==
-RAM <- Acc: RAM[Arg0] = Acc
+RAM <- AC: RAM[A0] = AC
 
 ==Add (OC == 0x03)==
-RAM -> Acc: Acc += RAM[Arg0]
+RAM -> AC: AC += RAM[A0]
 ==Neg (OC == 0x04)==
-Acc -> Acc: Acc = -Acc
+AC -> AC: AC = -AC
 
 ==Mul (OC == 0x05)==
-RAM -> Acc: Acc *= RAM[Arg0]
+RAM -> AC: AC *= RAM[A0]
 ==Div (OC == 0x06)==
-RAM -> Acc: Acc /= RAM[Arg0]
+RAM -> AC: AC /= RAM[A0]
 
 ==Eq (OC == 0x07)==
-alt Acc == RAM[Arg0]
-    RAM -> Acc: Acc = 1
+alt AC == RAM[A0]
+    RAM -> AC: AC = 1
 else
-    RAM -> Acc: Acc = 0
+    RAM -> AC: AC = 0
 end
 ==Gt (OC == 0x08)==
-alt Acc > RAM[Arg0]
-    RAM -> Acc: Acc = 1
+alt AC > RAM[A0]
+    RAM -> AC: AC = 1
 else
-    RAM -> Acc: Acc = 0
+    RAM -> AC: AC = 0
 end
 
 ==Not (OC == 0x09)==
-alt Acc == 0
-    Acc -> Acc: Acc = 1
+alt AC == 0
+    AC -> AC: AC = 1
 else
-    Acc -> Acc: Acc = 0
+    AC -> AC: AC = 0
 end
 ==And (OC == 0x0a)==
-alt Acc and RAM[Arg0]
-    Acc -> Acc: Acc = 1
+alt AC and RAM[A0]
+    RAM -> AC: AC = 1
 else
-    Acc -> Acc: Acc = 0
+    RAM -> AC: AC = 0
 end
 ==Or (OC == 0x0b)==
-alt Acc or RAM[Arg0]
-    Acc -> Acc: Acc = 1
+alt AC or RAM[A0]
+    RAM -> AC: AC = 1
 else
-    Acc -> Acc: Acc = 0
+    RAM -> AC: AC = 0
 end
 
 ==Jmp (OC == 0x0c)==
-RAM -> IA: IA = RAM[Arg0]
+RAM -> IA: IA = A0
 ==Jif (OC == 0x0d)==
-opt Acc != 0
-    RAM -> IA: IA = RAM[Arg0]
+opt AC != 0
+    RAM -> IA: IA = A0
 end
 
-==Halt (OC == 0xff)==
-CPU -> CPU: HaltExecution interrupt
+==Noop (OC == 0xff)==
+
+@enduml
+
+@startuml advanced_instructions
+title CrashVM advanced instructions set
+
+participant FSB
+participant V0
+participant A0
+participant AC
+participant SP
+participant IA
+participant OM
+
+==Int (OC == 0x00)==
+alt OM[2] == 0
+    A0 -> CPU: Software interrupt with code A0
+else
+    V0 -> CPU: Software interrupt with code V0
+end
+
+==Ld (OC == 0x01)==
+V0 -> AC: AC = V0
+==St (OC == 0x02)==
+alt OM[2] == 0
+    FSB <- AC: FSB[A0] = AC
+else
+    FSB <- AC: FSB[V0] = AC
+end
+
+==Add (OC == 0x03)==
+V0 -> AC: AC += V0
+==Neg (OC == 0x04)==
+AC -> AC: AC = -AC
+
+==Mul (OC == 0x05)==
+V0 -> AC: AC *= V0
+==Div (OC == 0x06)==
+V0 -> AC: AC /= V0
+
+==Eq (OC == 0x07)==
+alt AC == V0
+    V0 -> AC: AC = 1
+else
+    V0 -> AC: AC = 0
+end
+==Gt (OC == 0x08)==
+alt AC > V0
+    V0 -> AC: AC = 1
+else
+    V0 -> AC: AC = 0
+end
+
+==Not (OC == 0x09)==
+alt AC == 0
+    AC -> AC: AC = 1
+else
+    AC -> AC: AC = 0
+end
+==And (OC == 0x0a)==
+alt AC and V0
+    V0 -> AC: AC = 1
+else
+    V0 -> AC: AC = 0
+end
+==Or (OC == 0x0b)==
+alt AC or V0
+    V0 -> AC: AC = 1
+else
+    V0 -> AC: AC = 0
+end
+
+==Jmp (OC == 0x0c)==
+alt OM[2] == 0
+    A0 -> IA: IA = A0
+else
+    V0 -> IA: IA = V0
+end
+==Jif (OC == 0x0d)==
+opt AC != 0
+    alt OM[2] == 0
+        A0 -> IA: IA = A0
+    else
+        V0 -> IA: IA = V0
+    end
+end
+
+==A0A (OC == 0x10)==
+OM -> OM: OM[0] = 0
+==A0V (OC == 0x11)==
+OM -> OM: OM[0] = 1
+==ARAM (OC == 0x12)==
+OM -> OM: OM[1] = 0
+==ASta (OC == 0x13)==
+OM -> OM: OM[1] = 1
+==Comp (OC == 0x14)==
+OM -> OM: OM[2] = 0
+==Ext (OC == 0x15)==
+OM -> OM: OM[2] = 1
+
+==Stk (OC == 0x70)==
+V0 -> SP: SP = V0
+
+==Push (OC == 0x71)==
+FSB <- AC: FSB[SP] = AC
+SP -> SP: SP += 1
+==Pop (OC == 0x72)==
+SP -> SP: SP -= V0
+
+==Noop (OC == 0xff)==
 
 @enduml

@@ -23,19 +23,17 @@ class RAM(Slave):
         return self._capacity
 
     def __repr__(self):
-        line_segment_len = 2
+        line_segment_len = 4
         line_segments_num = 16
-        # noinspection PyTypeChecker
-        hex_str = bytes(self._cells).hex()
-        header = list(map(lambda i: f'{i:02x}', range(line_segments_num))) + ['..'] * line_segments_num
-        hex_str = header + [hex_str[i:i + line_segment_len]
-                            for i in range(0, len(hex_str), line_segment_len)]
+        header = list(map(lambda i: f'{i:0{line_segment_len}x}',
+                          range(line_segments_num))) + ['....'] * line_segments_num
+        hex_str = header + [f'{v:0{line_segment_len}x}' for v in self._cells]
         hex_str = [' '.join(hex_str[i:i + line_segments_num])
                    for i in range(0, len(hex_str), line_segments_num)]
         hex_str = '\n'.join(map(lambda t: (
-                                f'    {t[0] * line_segments_num:06x} : '
+                                f'    {t[0] * line_segments_num:0{line_segment_len}x} : '
                                 if t[0] >= 0 else
-                                '             ')
+                                '    ' + ' ' * (line_segment_len + 3))
                                 + t[1],
                                 zip(count(-2), hex_str)))
         return f'RAM({self._capacity}x{sizeof(NativeNumber)} bytes)\n{hex_str}'
