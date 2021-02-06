@@ -49,7 +49,7 @@ def parse_number(number_str: str) -> NativeNumber:
 
 def int_to_address(value):
     address = Address(value)
-    if value != address.value:
+    if value != address.value and value != NativeNumber(value).value:
         raise CompilationError(f'Value {value} is out of range')
     return address
 
@@ -231,8 +231,12 @@ def compile(lines):
     # first pass to determine addresses of labels
     labels = {line.label: line.address for line in [line for line in parsed if isinstance(line, LabelLine)]}
 
-    def resolve(byte):
-        return labels[byte] if isinstance(byte, Label) else byte
+    def resolve(line_number, byte):
+        try:
+            return labels[byte] if isinstance(byte, Label) else byte
+        except KeyError:
+            raise CompilationError(f'Line {line_number}: Invalid label {byte}')
 
     # second pass to produce bytecode
-    return list(chain([[resolve(byte) for byte in line.produce_bytes_padded()] for line in parsed]))
+    return list(chain([[resolve(line_number, byte) for byte in line.produce_bytes_padded()]
+                       for line_number, line in zip(count(0), parsed)]))
