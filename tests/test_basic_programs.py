@@ -95,13 +95,13 @@ def function_sqr_program(a):
 
             A0V  # value arg mode
             STK stack:
-            LD post_call:  # push return address
+            LD post_fun_sqr_1_1_call_0:  # push return address
             PUSH
-            # set arg0
-            LD {a}
+            LD {a} # set arg0
             PUSH
             JMP fun_sqr_1_1:
-            post_call:
+
+        post_fun_sqr_1_1_call_0:
             A0A  # address arg mode
             ASTA  # stack offset addressing mode
             LD 0  # load returned value
