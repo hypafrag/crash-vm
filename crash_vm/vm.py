@@ -6,8 +6,6 @@ from .ram import RAM
 from .bus import Bus
 from itertools import count
 from enum import Enum
-from threading import Thread
-from time import sleep
 
 
 class VM:
@@ -20,7 +18,7 @@ class VM:
             self._fsb.attach(AddressRange(next_pool_address, next_pool_address + pool_size), peripheral)
             next_pool_address += pool_size
         self._cpu = CPU(self._fsb)
-        self._clock_thread = None
+        self._clock_interrupt_ts = int(time.time())
 
     def _breakpoint(self):
         print(self)
@@ -30,6 +28,10 @@ class VM:
             try:
                 next(cycle_iter)
             except StopIteration:
+                ts = int(time.time())
+                if ts > self._clock_interrupt_ts:
+                    self._clock_interrupt_ts = ts
+                    self._cpu.irq(self._cpu.get_irq_levels() - 1)
                 cycle_iter = self._cpu.cycle()
         except SWInterrupt as interrupt:
             if interrupt.code == SWInterrupt.ReservedCodes.Breakpoint.value:
@@ -38,16 +40,8 @@ class VM:
                 raise interrupt
         return cycle_iter
 
-    def _clock(self):
-        irq_level = self._cpu.get_irq_levels() - 1
-        while self._clock_thread is not None:
-            sleep(1)
-            self._cpu.irq(irq_level)
-
     def run(self, frequency=None):
-        clock_thread = Thread(target=self._clock)
-        self._clock_thread = clock_thread
-        clock_thread.start()
+        self._clock_interrupt_ts = int(time.time())
         try:
             if frequency is None:
                 cycle_iter = self._cpu.cycle()
@@ -70,9 +64,6 @@ class VM:
                 pass
             else:
                 raise interrupt
-        finally:
-            self._clock_thread = None
-            clock_thread.join()
 
     def reset(self):
         self._ram.clear()

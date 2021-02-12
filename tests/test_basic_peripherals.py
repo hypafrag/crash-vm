@@ -166,4 +166,4 @@ class TestPeripherals(unittest.TestCase):
     def test_clock_tick_asm_program(self):
         actual_out, = self.vm_exec(clock_tick_asm_program, out_cls=ProfiledQueuesOutputPeripheral)
         self.assertSequenceEqual(list(map(lambda n: n[1].value, actual_out)), [1, 2, 3, 4, 5])
-        self.assertEqual((actual_out[-1][0] - actual_out[0][0]) // 1000000000, 4)
+        self.assertEqual(round((actual_out[-1][0] - actual_out[0][0]) / 1000000000), 4)
