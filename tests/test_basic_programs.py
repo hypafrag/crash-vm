@@ -53,34 +53,34 @@ def factorial_asm_program(a):
     return (f'''
 
         # set a[i] = a
-            Ld a:
+            Ld :a
         # if a > 0 run
-            Jif run:
+            Jif :run
         # else halt
             Int 0
 
         run:
-            St a_i:
+            St :a_i
 
         iteration_begin:
 
         # result = result * a[i]
-            Ld result:
-            Mul a_i:
-            St result:
+            Ld :result
+            Mul :a_i
+            St :result
 
         # a[i]--
-            Ld const_1:
+            Ld :const_1
             Neg
-            Add a_i:
-            St a_i:
+            Add :a_i
+            St :a_i
 
         # iteration end
 
         # check a[n] > 1
-            Gt const_1:
+            Gt :const_1
         # if a[n] > 1 start new iteration
-            Jif iteration_begin:
+            Jif :iteration_begin
         # else halt
             Int 0
 
@@ -101,33 +101,33 @@ def factorial_asm_program(a):
 def function_sqr_program(a):
     return (f'''
         OFFSET 0
-            EXT  # extended mode
-            ASTA  # stack offset addressing mode
-            A0V  # value arg mode
-            STK stack:
+            STK :stack
 
-            LD post_fun_sqr_1_1_call_0:  # push return address
+            A0L  # literal arg mode
+            LD :post_fun_sqr_1_1_call_0  # push return address
             PUSH
             LD {a} # set arg0
             PUSH
-            JMP fun_sqr_1_1:
+            JMP :fun_sqr_1_1
 
         post_fun_sqr_1_1_call_0:
             A0A  # address arg mode
-            LD 0  # load returned value
             A0V  # value arg mode
+            A0S  # stack offset addressing mode
+            LD 0  # load returned value
             POP 3  # cleanup returned value, arg and return address
 
-            A0V  # value arg mode
             PUSH  # push program result
             INT 0
 
         OFFSET 100
         fun_sqr_1_1:
             A0A  # address arg mode
+            A0S  # stack offset addressing mode
             LD 0
             MUL 0
             PUSH  # push returned value
+            A0P  # pointer arg mode
             JMP 2
 
         OFFSET 200
@@ -138,61 +138,70 @@ def function_sqr_program(a):
 def function_factorial_recursive_program(a):
     return (f'''
         OFFSET 0
-            EXT  # extended mode
-            ASTA  # stack offset addressing mode
-            A0V  # value arg mode
-            STK stack:  # set stack pointer
+            STK :stack  # set stack pointer
 
-            LD post_fun_factorial_1_1_call_0:
+            # call fun_factorial_1_1({a})
+            A0L  # literal arg mode
+            LD :post_fun_factorial_1_1_call_0
             PUSH  # push return address
             LD {a} # set arg0
             PUSH
-            JMP fun_factorial_1_1:
+            JMP :fun_factorial_1_1
 
             post_fun_factorial_1_1_call_0:
             A0A  # address arg mode
-            LD 0  # load returned value
             A0V  # value arg mode
+            A0S  # stack offset addressing mode
+            LD 0  # load returned value
             POP 3  # cleanup returned value, arg and return address
 
-            A0V  # value arg mode
             PUSH  # push program result
             INT 0
 
             fun_factorial_1_1:
                 A0A  # address arg mode
-                LD 0
                 A0V  # value arg mode
-                JIF fun_factorial_1_1_arg_not_0:
+                A0S  # stack offset addressing mode
+                LD 0  # load arg
+                A0R  # RAM addressing mode
+                JIF :fun_factorial_1_1_arg_not_0
                 # arg == 0
+                    A0L  # literal arg mode
+                    A0S  # stack offset addressing mode
                     LD 1  # returned value
                     PUSH  # push returned value
                     A0A  # address arg mode
+                    A0P  # pointer arg mode
                     JMP 2  # return
                 # else
                 fun_factorial_1_1_arg_not_0:
-                    LD post_fun_factorial_1_1_call_recursive:
+                    # call fun_factorial_1_1(arg - 1)
+                    A0L  # literal arg mode
+                    A0S  # stack offset addressing mode
+                    LD :post_fun_factorial_1_1_call_recursive
                     PUSH  # push return address
                     A0A  # address arg mode
                     LD 1
-                    A0V  # value arg mode
+                    A0L  # literal arg mode
                     ADD -1
                     PUSH
-                    JMP fun_factorial_1_1:
+                    A0R  # RAM addressing mode
+                    JMP :fun_factorial_1_1
 
                     post_fun_factorial_1_1_call_recursive:
                     A0A  # address arg mode
-                    LD 0  # load f(arg - 1), returned value
-                    MUL 3  # arg * f(arg - 1), returned value
                     A0V  # value arg mode
+                    A0S  # stack offset addressing mode
+                    LD 0  # load fun_factorial_1_1(arg - 1), returned value
+                    MUL 3  # arg * f(arg - 1), returned value
                     POP 3  # cleanup returned value, arg and return address
                     PUSH  # push returned value
-                    A0A  # address arg mode
+                    A0P  # pointer arg mode
                     JMP 2  # return
 
-        OFFSET 60
+        OFFSET 80
         stack:
-    ''', 60, 60)
+    ''', 80, 80)
 
 
 def quad_equation(a, b, c):
@@ -248,7 +257,7 @@ def quad_equation(a, b, c):
     ], 128), (_sqrt_D, _x1, _x2), 247
 
 
-class TestPrograms(unittest.TestCase):
+class TestBasicPrograms(unittest.TestCase):
     def assertCodeSegmentUnchanged(self, program: list, vm: VM, instructions_segment_size: int):
         for i in range(instructions_segment_size):
             expected = NativeNumber(program[i].value if isinstance(program[i], (Enum, NativeNumber, Address))

@@ -1,6 +1,6 @@
 import re
 from itertools import count
-from .cpu import Instructions, instruction_methods
+from .cpu import Instructions, InstructionArgTypes, instruction_methods
 from ._types import NativeNumber, Address
 from typing import Generator, List, Union
 import itertools
@@ -17,7 +17,8 @@ IDENTIFIER_FIRST_CHARACTER_PATTERN = r'[a-zA-Z_]'
 IDENTIFIER_CHARACTER_PATTERN = r'[a-zA-Z_0-9]'
 SPACER_CHARACTER_PATTERN = r'[ \t]'
 LABEL_PATTERN = rf'{IDENTIFIER_FIRST_CHARACTER_PATTERN}{IDENTIFIER_CHARACTER_PATTERN}*:'
-ADDRESS_PATTERN = rf'(?:{ADDRESS_LITERAL_PATTERN}|{LABEL_PATTERN})'
+LABEL_VALUE_PATTERN = rf':{IDENTIFIER_FIRST_CHARACTER_PATTERN}{IDENTIFIER_CHARACTER_PATTERN}*'
+ADDRESS_PATTERN = rf'(?:{ADDRESS_LITERAL_PATTERN}|{LABEL_VALUE_PATTERN})'
 INDENTATION_PATTERN = rf'^{SPACER_CHARACTER_PATTERN}*'
 LINE_END_PATTERN = rf'{SPACER_CHARACTER_PATTERN}*(?:#.*)?$'
 INSTRUCTION_NAME_PATTERN = '|'.join(map(lambda i: f'(?i:{i.name})', Instructions))
@@ -39,12 +40,12 @@ def int_to_native_number(value):
     return native_number
 
 
-def parse_number(number_str: str) -> NativeNumber:
-    if re.match(HEX_NUMBER_PATTERN, number_str):
-        return int_to_native_number(int(number_str, 16))
-    if re.match(NUMBER_PATTERN, number_str):
-        return int_to_native_number(int(number_str))
-    raise CompilationError(f'Invalid number value {number_str}')
+# def parse_number(number_str: str) -> NativeNumber:
+#     if re.match(HEX_NUMBER_PATTERN, number_str):
+#         return int_to_native_number(int(number_str, 16))
+#     if re.match(NUMBER_PATTERN, number_str):
+#         return int_to_native_number(int(number_str))
+#     raise CompilationError(f'Invalid number value {number_str}')
 
 
 def int_to_address(value):
@@ -55,10 +56,21 @@ def int_to_address(value):
 
 
 class Label(str):
-    def __init__(self, string_value):
+    @staticmethod
+    def __new__(cls, string_value):
         if re.match(rf'^{LABEL_PATTERN}$', string_value) is None:
             raise CompilationError(f'Invalid label')
-        super().__init__()
+        # noinspection PyArgumentList
+        return str.__new__(cls, string_value[:-1])
+
+
+class LabelValue(str):
+    @staticmethod
+    def __new__(cls, string_value):
+        if re.match(rf'^{LABEL_VALUE_PATTERN}$', string_value) is None:
+            raise CompilationError(f'Invalid label value')
+        # noinspection PyArgumentList
+        return str.__new__(cls, string_value[1:])
 
 
 def parse_address_literal(address_str: str) -> Address:
@@ -69,14 +81,14 @@ def parse_address_literal(address_str: str) -> Address:
     raise CompilationError(f'Invalid address value {address_str}')
 
 
-def parse_address(address_str: str, labels: dict = None) -> Union[Address, Label]:
+def parse_address(address_str: str, labels: dict = None) -> Union[Address, LabelValue]:
     try:
         return parse_address_literal(address_str)
     except CompilationError:
         pass
-    if re.match(LABEL_PATTERN, address_str):
+    if re.match(LABEL_VALUE_PATTERN, address_str):
         if labels is None:
-            return Label(address_str)
+            return LabelValue(address_str)
         try:
             return labels[address_str]
         except KeyError:
@@ -129,11 +141,11 @@ class LabelLine(Line):
 
 
 class ValueLine(Line):
-    Pattern = rf'{INDENTATION_PATTERN}({NUMBER_PATTERN}){LINE_END_PATTERN}'
+    Pattern = rf'{INDENTATION_PATTERN}({ADDRESS_PATTERN}){LINE_END_PATTERN}'
 
     def __init__(self, address: Address, value: str):
         super().__init__(address)
-        self.value = parse_number(value)
+        self.value = parse_address(value)
 
     def produced_bytes_padded_num(self):
         return 1
@@ -143,7 +155,7 @@ class ValueLine(Line):
 
 
 class InstructionLine(Line):
-    Pattern = rf'{INDENTATION_PATTERN}({INSTRUCTION_NAME_PATTERN})((?: +{ADDRESS_PATTERN})*){LINE_END_PATTERN}'
+    Pattern = rf'{INDENTATION_PATTERN}({INSTRUCTION_NAME_PATTERN})((?:{SPACER_CHARACTER_PATTERN}+{ADDRESS_PATTERN})*){LINE_END_PATTERN}'
 
     def __init__(self, address: Address, instruction_name: str, args_str: str):
         super().__init__(address, instruction_name, args_str)
@@ -152,9 +164,11 @@ class InstructionLine(Line):
             instruction = LowercaseInstructions[instruction_name.lower()]
         except KeyError:
             raise CompilationError(f'Invalid instruction {instruction_name}')
-        _, arg_num = instruction_methods[instruction]
-        if arg_num != len(args):
-            raise CompilationError(f'Instruction {instruction_name} takes {arg_num} arguments, {len(args)} given')
+        _, arg_type = instruction_methods[instruction]
+        if arg_type == InstructionArgTypes.NoArg and args:
+            raise CompilationError(f'Instruction {instruction_name} takes no arguments, {len(args)} given')
+        if arg_type != InstructionArgTypes.NoArg and not args:
+            raise CompilationError(f'Instruction {instruction_name} takes 1 arguments, none given')
         self.instruction = instruction
         self.args = tuple(map(parse_address, args))
 
@@ -180,7 +194,7 @@ def parse(lines) -> Generator[Line, None, None]:
             line_address += line.produced_bytes_padded_num()
             yield line
         except CompilationError as error:
-            error.message = f'Line {line_number}: {error.message}'
+            error.message = f'Line {line_number}: {line}\n    {error.message}'
             raise error
 
 
@@ -233,7 +247,7 @@ def compile(lines):
 
     def resolve(line_number, byte):
         try:
-            return labels[byte] if isinstance(byte, Label) else byte
+            return labels[byte] if isinstance(byte, LabelValue) else byte
         except KeyError:
             raise CompilationError(f'Line {line_number}: Invalid label {byte}')
 
