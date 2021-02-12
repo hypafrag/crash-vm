@@ -1,4 +1,16 @@
 body {
+    font-family: Monospace;
+    font-size: 11px;
+    background-color: lightgray;
+}
+
+#code_editor {
+    height: 400pt;
+}
+
+#log_text_area {
+    font-family: Monospace;
+    width: 100%;
     background-color: lightgray;
 }
 

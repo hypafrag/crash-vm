@@ -7,3 +7,5 @@
 /.idea/encodings.xml
 /.idea/misc.xml
 __pycache__
+/.tape_bootstrap.py
+/tape.py

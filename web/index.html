@@ -1,14 +1,109 @@
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 	<head>
 		<meta charset="utf-8">
-		<title>Crash VM</title>
+		<title>Crash VM web ASM</title>
 		<link rel="stylesheet" href="styles.css">
 	</head>
 
 	<body>
 		<script src="https://cdn.jsdelivr.net/pyodide/v0.16.1/full/pyodide.js"></script>
-		<script src="logic.js"></script>
+		<script src="https://pagecdn.io/lib/ace/1.4.12/ace.min.js"></script>
+		<script src="pyodide.js"></script>
+
+		<h1>Crash VM web ASM</h1>
+
+		<div id="code_editor"># Recursive implementation of factorial calculation
+OFFSET 0
+STK :stack  # set stack pointer
+
+# call fun_factorial_1_1(arg)
+A0L  # literal arg mode
+LD :post_fun_factorial_1_1_call_0
+PUSH  # push return address
+A0A  # literal arg mode
+LD 0xf0 # set arg0
+PUSH
+JMP :fun_factorial_1_1
+
+post_fun_factorial_1_1_call_0:
+A0A  # address arg mode
+A0V  # value arg mode
+A0S  # stack offset addressing mode
+LD 0  # load returned value
+A0R  # RAM addressing mode
+ST 0xf1  # set result value
+INT 0  # halt
+
+fun_factorial_1_1:
+	A0A  # address arg mode
+	A0V  # value arg mode
+	A0S  # stack offset addressing mode
+	LD 0  # load arg
+	A0R  # RAM addressing mode
+	JIF :fun_factorial_1_1_arg_not_0
+	# arg == 0
+		A0L  # literal arg mode
+		A0S  # stack offset addressing mode
+		LD 1  # returned value
+		PUSH  # push returned value
+		A0A  # address arg mode
+		A0P  # pointer arg mode
+		JMP 2  # return
+	# else
+	fun_factorial_1_1_arg_not_0:
+		# call fun_factorial_1_1(arg - 1)
+		A0L  # literal arg mode
+		A0S  # stack offset addressing mode
+		LD :post_fun_factorial_1_1_call_recursive
+		PUSH  # push return address
+		A0A  # address arg mode
+		LD 1
+		A0L  # literal arg mode
+		ADD -1
+		PUSH
+		A0R  # RAM addressing mode
+		JMP :fun_factorial_1_1
+
+		post_fun_factorial_1_1_call_recursive:
+		A0A  # address arg mode
+		A0V  # value arg mode
+		A0S  # stack offset addressing mode
+		LD 0  # load fun_factorial_1_1(arg - 1), returned value
+		MUL 3  # arg * f(arg - 1), returned value
+		POP 3  # cleanup returned value, arg and return address
+		PUSH  # push returned value
+		A0P  # pointer arg mode
+		JMP 2  # return
+
+OFFSET 80
+stack:
+</div>
+		<script>
+			let code_editor = ace.edit('code_editor');
+			// code_editor.setTheme("ace/theme/monokai");
+			// code_editor.session.setMode("ace/mode/javascript");
+		</script>
+		<table>
+			<tr>
+				<td>
+					<label>
+						Argument (0xf0):
+						<input id="in_arg_input" type="number" value="5"/>
+					</label>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<button id="run_button" onclick="run()">Initializing...</button>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<label><textarea id="log_text_area" rows="25" cols="90" hidden readonly></textarea></label>
+				</td>
+			</tr>
+		</table>
 	</body>
 </html>
