@@ -154,13 +154,18 @@ opt Argument required for fetched operation
     FSB -> A0: A0 = FSB[IA]
     IA -> IA: IA += 1
     opt Argument has type other then `value`
-        opt OM[2] == 1
-            A0 -> A0: A0 = SP - A0 - 1
-        end
         opt Argument has type `value address`
             opt OM[0] == 0
                 ==Fetch argument value==
+                opt OM[2] == 1
+                    A0 -> A0: A0 = SP - A0 - 1
+                end
                 FSB -> A0: A0 = FSB[A0]
+            end
+        end
+        opt Argument has type `address`
+            opt OM[2] == 1
+                A0 -> A0: A0 = SP - A0 - 1
             end
         end
         opt OM[1] == 1

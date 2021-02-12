@@ -1,19 +1,19 @@
-from ._types import Address, NativeNumber
+from ._types import Address, NativeNumber, memset, sizeof, array
 from .bus import Slave
 from itertools import count
-from ctypes import memset, sizeof
 
 
 class RAM(Slave):
     def __init__(self, capacity: int):
         self._capacity = capacity
-        self._cells = (NativeNumber * capacity)()
+        self._cells = array(capacity)
         self.clear()
 
     def __getitem__(self, address: Address) -> NativeNumber:
-        return NativeNumber(self._cells[address.value])
+        return NativeNumber(int(self._cells[address.value]))
 
     def __setitem__(self, address: Address, value: NativeNumber) -> None:
+        assert isinstance(value, NativeNumber)
         self._cells[address.value] = value
 
     def clear(self):
@@ -27,7 +27,7 @@ class RAM(Slave):
         line_segments_num = 16
         header = list(map(lambda i: f'{i:0{line_segment_len}x}',
                           range(line_segments_num))) + ['....'] * line_segments_num
-        hex_str = header + [f'{v:0{line_segment_len}x}' for v in self._cells]
+        hex_str = header + [f'{int(v):0{line_segment_len}x}' for v in self._cells]
         hex_str = [' '.join(hex_str[i:i + line_segments_num])
                    for i in range(0, len(hex_str), line_segments_num)]
         hex_str = '\n'.join(map(lambda t: (
@@ -36,4 +36,4 @@ class RAM(Slave):
                                 '    ' + ' ' * (line_segment_len + 3))
                                 + t[1],
                                 zip(count(-2), hex_str)))
-        return f'RAM({self._capacity}x{sizeof(NativeNumber)} bytes)\n{hex_str}'
+        return f'RAM({self._capacity}x{sizeof(NativeNumber) * 8} bits)\n{hex_str}'

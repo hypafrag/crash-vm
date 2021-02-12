@@ -145,6 +145,8 @@ class TestPeripherals(unittest.TestCase):
         vm.load_program(bytecode)
         vm.run(frequency)
 
+        print(vm)
+
         if out_size > 0:
             return outp.values()
 

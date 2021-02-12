@@ -83,7 +83,7 @@ class VM:
         for address, value in zip(count(), program):
             if isinstance(value, (Enum, NativeNumber, Address)):
                 value = value.value
-            self._ram[Address(address)] = value
+            self._ram[Address(address)] = NativeNumber(value)
 
     def __getitem__(self, item: Address) -> NativeNumber:
         return self._fsb[item]

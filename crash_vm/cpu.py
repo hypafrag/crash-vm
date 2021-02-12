@@ -222,14 +222,17 @@ class CPU:
         if arg_type == InstructionArgTypes.ValueArg:
             return
 
-        if self._flag(self._OM, OMFlags.A0AddressingMode) == 1:
-            self._A0 = NativeNumber(self._SP.value - self._A0.value - 1)
-
         if arg_type == InstructionArgTypes.ValueAddressArg:
             if self._flag(self._OM, OMFlags.A0Type) == 0:
+                if self._flag(self._OM, OMFlags.A0AddressingMode) == 1:
+                    self._A0 = NativeNumber(self._SP.value - self._A0.value - 1)
                 # fetch argument value
                 self._A0 = self._fsb[Address(self._A0.value)]
                 yield
+
+        if arg_type == InstructionArgTypes.AddressArg:
+            if self._flag(self._OM, OMFlags.A0AddressingMode) == 1:
+                self._A0 = NativeNumber(self._SP.value - self._A0.value - 1)
 
         if self._flag(self._OM, OMFlags.A0ValueType) == 1:
             # resolve argument value as pointer

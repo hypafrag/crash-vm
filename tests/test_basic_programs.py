@@ -271,6 +271,7 @@ class TestBasicPrograms(unittest.TestCase):
             program_code = asm_compile(program_code)
         vm.load_program(program_code)
         vm.run(frequency)
+        print(vm)
         self.assertCodeSegmentUnchanged(program_code, vm, instructions_segment_size)
 
         def addr_value(result_address):
