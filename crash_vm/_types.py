@@ -36,7 +36,7 @@ else:
     class NativeNumber:
         def __init__(self, value: int = 0):
             self.value = value & 0xffff
-            if self.value > 0xefff:
+            if self.value > 0x7fff:
                 self.value = self.value - 0x10000
 
         def __int__(self):
