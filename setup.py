@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="crash-vm",
-    version="0.0.2",
+    version="0.0.3",
     description="Simple virtual machine implemented in pure python",
     url="https://github.com/hypafrag/crash-vm",
     classifiers=[
