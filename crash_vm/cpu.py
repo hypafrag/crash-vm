@@ -16,8 +16,6 @@ class Instructions(Enum):
     Mul = 0x05  # AC *= [A0]
     Div = 0x06  # AC //= [A0]
 
-    # TODO: remove, can be performed by Neg, Add, Not
-    # Eq = 0x07  # AC = 1 if AC == [A0] else 0
     Gt = 0x08  # AC = 1 if AC > [A0] else 0
 
     Not = 0x09  # AC = 1 if AC == 0 else 0
@@ -198,6 +196,7 @@ class CPU:
                 yield from self._resolve_arg0(arg_type)
 
             # print(instruction.name, self)
+
             # execute
             method_iter = method(self)
             if method_iter is not None:
@@ -219,27 +218,18 @@ class CPU:
         else:
             return NativeNumber(register.value & ~(1 << flag.value))
 
-    def _resolve_address(self, address: int) -> Address:
-        if self._flag(self._OM, OMFlags.A0AddressingMode) == 0:
-            return Address(address)
-        else:
-            return Address(self._SP.value - address - 1)
-
     def _resolve_arg0(self, arg_type: InstructionArgTypes) -> Generator:
+        if arg_type == InstructionArgTypes.ValueArg:
+            return
+
+        if self._flag(self._OM, OMFlags.A0AddressingMode) == 1:
+            self._A0 = NativeNumber(self._SP.value - self._A0.value - 1)
+
         if arg_type == InstructionArgTypes.ValueAddressArg:
             if self._flag(self._OM, OMFlags.A0Type) == 0:
                 # fetch argument value
-                self._A0 = self._fsb[self._resolve_address(self._A0.value)]
+                self._A0 = self._fsb[Address(self._A0.value)]
                 yield
-
-        elif arg_type == InstructionArgTypes.AddressArg:
-            self._A0 = self._resolve_address(self._A0.value)
-
-        elif arg_type == InstructionArgTypes.ValueArg:
-            return
-
-        else:
-            raise NotImplementedError()
 
         if self._flag(self._OM, OMFlags.A0ValueType) == 1:
             # resolve argument value as pointer
@@ -285,10 +275,6 @@ class CPU:
     @perform_instruction(Instructions.Sqrt)
     def _square_root(self):
         self._AC = float_to_native_number(sqrt(self._AC.value))
-
-    # @perform_instruction(Instructions.Eq, 1)
-    # def _equal(self):
-    #     self._AC = NativeTrue if self._AC.value == self._A0.value else NativeFalse
 
     @perform_instruction(Instructions.Gt, InstructionArgTypes.ValueAddressArg)
     def _greater(self):

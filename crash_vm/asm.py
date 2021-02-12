@@ -40,14 +40,6 @@ def int_to_native_number(value):
     return native_number
 
 
-# def parse_number(number_str: str) -> NativeNumber:
-#     if re.match(HEX_NUMBER_PATTERN, number_str):
-#         return int_to_native_number(int(number_str, 16))
-#     if re.match(NUMBER_PATTERN, number_str):
-#         return int_to_native_number(int(number_str))
-#     raise CompilationError(f'Invalid number value {number_str}')
-
-
 def int_to_address(value):
     address = Address(value)
     if value != address.value and value != NativeNumber(value).value:
@@ -196,47 +188,6 @@ def parse(lines) -> Generator[Line, None, None]:
         except CompilationError as error:
             error.message = f'Line {line_number}: {line}\n    {error.message}'
             raise error
-
-
-# def compile(lines):
-#     parsed = list(parse(lines))
-#
-#     # first pass to determine addresses of labels
-#     labels = {}
-#     for line in parsed:
-#         if isinstance(line, LabelLine):
-#             if line.label in labels:
-#                 raise CompilationError(f'Label {line.label} duplicated')
-#             labels[line.label] = line.address
-#             continue
-#
-#     def resolve(byte):
-#         return labels[byte] if isinstance(byte, Label) else byte
-#
-#     # second pass to produce bytecode
-#     compiled = []
-#     for line in parsed:
-#         for byte in line.produce_bytes_padded():
-#             resolved = resolve(byte)
-#             compiled.append(resolved)
-#     return compiled
-
-
-# def compile(lines):
-#     parsed = list(parse(lines))
-#
-#     # first pass to determine addresses of labels
-#     labels = dict(map(lambda l: (l.label, l.address),
-#                       filter(lambda l: isinstance(l, LabelLine),
-#                              parsed)))
-#
-#     def resolve(byte):
-#         return labels[byte] if isinstance(byte, Label) else byte
-#
-#     # second pass to produce bytecode
-#     return list(chain(map(lambda line: map(resolve,
-#                                            line.produce_bytes_padded()),
-#                           parsed)))
 
 
 def compile(lines):

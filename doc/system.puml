@@ -58,9 +58,9 @@ Caller -> Stack: Pop ArgN + RetN + 1\nvalues
 title CrashVM advanced architecture
 
 map "OM Flags" as OMF {
-    0x0 => A0 value type\n0 - address\n1 - value
-    0x1 => Addressing mode\n0 - RAM address\n1 - Stack offset
-    0x2 => Jump argument value type\n0 - value\n1 - address
+    0x0 => A0 type\n0 - Address (RAM/stack)\n1 - Literal
+    0x1 => A0 value type\n0 - Value\n1 - Pointer
+    0x2 => Addressing mode\n0 - RAM address\n1 - Stack offset
     0x3 - 0xf => Not used, always 0
 }
 
@@ -70,10 +70,11 @@ map CPU {
     OM *-> OMF
     OM => Operation mode\n16 flags
     A0 => Operation argument\n0x0000 - 0xffff
-    V0 => Resolved A0 value\n0x0000 - 0xffff
     AC => Accumulator\n0x0000 - 0xffff
-    OS => Operation status\n0x0000 - 0xffff
     SP => Stack pointer\n0x0000 - 0xffff
+    HI => Hardware interrupt\nhandlers table address\n0x0000 - 0xffff
+    SI => Software interrupt\nhandlers table address\n0x0000 - 0xffff
+    IL => Current executed\ninterrupt level + 1\n(0 - no interrupt\nhandler executed)\n0x0000 - 0xffff
 }
 
 map Bridge {
@@ -124,7 +125,7 @@ opt Argument required for fetched operation
 end
 ==Execute==
 CPU -> CPU: Execute instruction\n(see "CrashVM instructions")
-alt Halt executed
+alt Int 0 raised
     CPU -> CPU: Stop cycling
 else
     CPU -> CPU: Back to "Fetch opcode"
@@ -137,7 +138,7 @@ title CrashVM advanced cycle
 
 participant FSB
 participant OC
-participant V0
+participant A0
 participant IA
 participant CPU
 
@@ -152,18 +153,25 @@ opt Argument required for fetched operation
     ==Fetch argument==
     FSB -> A0: A0 = FSB[IA]
     IA -> IA: IA += 1
-    opt OM[0] == 0
-        ==Fetch argument value==
-        alt OM[1] == 0
-        FSB -> V0: V0 = FSB[A0]
-        else
-        FSB -> V0: V0 = FSB[SP - A0 - 1]
+    opt Argument has type other then `value`
+        opt OM[2] == 1
+            A0 -> A0: A0 = SP - A0 - 1
+        end
+        opt Argument has type `value address`
+            opt OM[0] == 0
+                ==Fetch argument value==
+                FSB -> A0: A0 = FSB[A0]
+            end
+        end
+        opt OM[1] == 1
+            ==Resolve argument value as pointer==
+            FSB -> A0: A0 = FSB[A0]
         end
     end
 end
 ==Execute==
 CPU -> CPU: Execute instruction\n(see "CrashVM instructions")
-alt Halt executed
+alt Int 0 raised
     CPU -> CPU: Stop cycling
 else
     CPU -> CPU: Back to "Fetch opcode"
@@ -197,12 +205,6 @@ RAM -> AC: AC *= RAM[A0]
 ==Div (OC == 0x06)==
 RAM -> AC: AC /= RAM[A0]
 
-==Eq (OC == 0x07)==
-alt AC == RAM[A0]
-    RAM -> AC: AC = 1
-else
-    RAM -> AC: AC = 0
-end
 ==Gt (OC == 0x08)==
 alt AC > RAM[A0]
     RAM -> AC: AC = 1
@@ -244,108 +246,32 @@ end
 title CrashVM advanced instructions set
 
 participant FSB
-participant V0
 participant A0
 participant AC
 participant SP
 participant IA
 participant OM
 
-==Int (OC == 0x00)==
-alt OM[2] == 0
-    A0 -> CPU: Software interrupt with code A0
-else
-    V0 -> CPU: Software interrupt with code V0
-end
-
-==Ld (OC == 0x01)==
-V0 -> AC: AC = V0
-==St (OC == 0x02)==
-alt OM[2] == 0
-    FSB <- AC: FSB[A0] = AC
-else
-    FSB <- AC: FSB[V0] = AC
-end
-
-==Add (OC == 0x03)==
-V0 -> AC: AC += V0
-==Neg (OC == 0x04)==
-AC -> AC: AC = -AC
-
-==Mul (OC == 0x05)==
-V0 -> AC: AC *= V0
-==Div (OC == 0x06)==
-V0 -> AC: AC /= V0
-
-==Eq (OC == 0x07)==
-alt AC == V0
-    V0 -> AC: AC = 1
-else
-    V0 -> AC: AC = 0
-end
-==Gt (OC == 0x08)==
-alt AC > V0
-    V0 -> AC: AC = 1
-else
-    V0 -> AC: AC = 0
-end
-
-==Not (OC == 0x09)==
-alt AC == 0
-    AC -> AC: AC = 1
-else
-    AC -> AC: AC = 0
-end
-==And (OC == 0x0a)==
-alt AC and V0
-    V0 -> AC: AC = 1
-else
-    V0 -> AC: AC = 0
-end
-==Or (OC == 0x0b)==
-alt AC or V0
-    V0 -> AC: AC = 1
-else
-    V0 -> AC: AC = 0
-end
-
-==Jmp (OC == 0x0c)==
-alt OM[2] == 0
-    A0 -> IA: IA = A0
-else
-    V0 -> IA: IA = V0
-end
-==Jif (OC == 0x0d)==
-opt AC != 0
-    alt OM[2] == 0
-        A0 -> IA: IA = A0
-    else
-        V0 -> IA: IA = V0
-    end
-end
-
 ==A0A (OC == 0x10)==
 OM -> OM: OM[0] = 0
-==A0V (OC == 0x11)==
+==A0L (OC == 0x11)==
 OM -> OM: OM[0] = 1
-==ARAM (OC == 0x12)==
+==A0V (OC == 0x10)==
 OM -> OM: OM[1] = 0
-==ASta (OC == 0x13)==
+==A0P (OC == 0x11)==
 OM -> OM: OM[1] = 1
-==Comp (OC == 0x14)==
+==A0R (OC == 0x12)==
 OM -> OM: OM[2] = 0
-==Ext (OC == 0x15)==
+==A0S (OC == 0x13)==
 OM -> OM: OM[2] = 1
 
 ==Stk (OC == 0x70)==
-V0 -> SP: SP = V0
+A0 -> SP: SP = A0
 
 ==Push (OC == 0x71)==
 FSB <- AC: FSB[SP] = AC
 SP -> SP: SP += 1
 ==Pop (OC == 0x72)==
-SP -> SP: SP -= V0
-
-==Noop (OC == 0xff)==
+SP -> SP: SP -= A0
 
 @enduml
