@@ -5,6 +5,7 @@ body {
 }
 
 #code_editor {
+    width: 600pt;
     height: 400pt;
 }
 

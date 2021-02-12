@@ -14,7 +14,7 @@
 
 		<h1>Crash VM web ASM</h1>
 
-		<div id="code_editor"># Recursive implementation of factorial calculation
+		<div id="code_editor"># Recursive implementation of factorial calculation (up to 8!)
 OFFSET 0
 STK :stack  # set stack pointer
 
@@ -41,9 +41,11 @@ fun_factorial_1_1:
 	A0V  # value arg mode
 	A0S  # stack offset addressing mode
 	LD 0  # load arg
+	A0L  # literal arg mode
+	GT 1  # test if arg > 1
 	A0R  # RAM addressing mode
 	JIF :fun_factorial_1_1_arg_not_0
-	# arg == 0
+	# arg <= 1
 		A0L  # literal arg mode
 		A0S  # stack offset addressing mode
 		LD 1  # returned value
@@ -54,8 +56,10 @@ fun_factorial_1_1:
 	# else
 	fun_factorial_1_1_arg_not_0:
 		# call fun_factorial_1_1(arg - 1)
-		A0L  # literal arg mode
+		A0A  # address arg mode
 		A0S  # stack offset addressing mode
+		LD 0  # load arg
+		A0L  # literal arg mode
 		LD :post_fun_factorial_1_1_call_recursive
 		PUSH  # push return address
 		A0A  # address arg mode
